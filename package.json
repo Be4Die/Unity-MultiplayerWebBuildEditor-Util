@@ -1,0 +1,11 @@
+{
+    "name": "com.welwise.multiplayerwebbuildeditor",
+    "version": "1.0.0",
+    "displayName": "MultiplayerWebBuildEditor",
+    "description": "Tool for build web online games",
+    "unity": "2022.3",
+    "author": {
+        "name": "Michael N",
+        "email": "misha375375@gmail.com"
+      }
+  }

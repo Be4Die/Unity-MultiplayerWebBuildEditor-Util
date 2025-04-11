@@ -89,7 +89,7 @@ public static class MultiplayerWebBuildEditor
                 .ToArray(),
             locationPathName = clientPath,
             target = BuildTarget.StandaloneWindows64,
-            options = BuildOptions.Development | BuildOptions.EnableHeadlessMode
+            options = BuildOptions.Development
         };
         BuildPipeline.BuildPlayer(buildOptions);
     }
@@ -106,7 +106,7 @@ public static class MultiplayerWebBuildEditor
             locationPathName = serverPath,
             target = BuildTarget.StandaloneWindows64,
             subtarget = (int)StandaloneBuildSubtarget.Server,
-            options = BuildOptions.Development | BuildOptions.EnableHeadlessMode
+            options = BuildOptions.Development
         };
         BuildPipeline.BuildPlayer(buildOptions);
     }

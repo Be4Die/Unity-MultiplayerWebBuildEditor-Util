@@ -2,13 +2,12 @@
 using UnityEngine;
 using System.IO;
 using System.Diagnostics;
+using System.Reflection;
 using System;
 using System.Linq;
 
 public static class MultiplayerWebBuildEditor
 {
-    private const string GoServerName = "server_go.exe";
-
     [MenuItem("Tools/MultiplayerWebBuildEditor/Build")]
     private static void Build()
     {
@@ -30,7 +29,7 @@ public static class MultiplayerWebBuildEditor
         BuildClient(path);
         BuildServer(path);
 
-        if (CopyGoServerToBuild(path))
+        if (CopyStartExeToClient(path))
         {
             RunServerAndClient(path);
         }
@@ -38,36 +37,11 @@ public static class MultiplayerWebBuildEditor
         EditorUtility.RevealInFinder(Path.Combine(path, "client"));
     }
 
-    [MenuItem("Tools/MultiplayerWebBuildEditor/Run Load Test")]
-    private static void RunLoadTest()
-    {
-        string path = EditorUtility.OpenFolderPanel("Select Build Folder", "", "");
-        if (string.IsNullOrEmpty(path)) return;
-
-        string goServerPath = Path.Combine(path, "client", GoServerName);
-        
-        if (File.Exists(goServerPath))
-        {
-            var process = new Process {
-                StartInfo = {
-                    FileName = goServerPath,
-                    Arguments = "--ldt-clients 500 --ldt-step 20",
-                    UseShellExecute = true,
-                    WorkingDirectory = Path.GetDirectoryName(goServerPath)
-                }
-            };
-            process.Start();
-        }
-        else
-        {
-            UnityEngine.Debug.LogError("Go server executable not found!");
-        }
-    }
-
     private static void BuildClient(string rootPath)
     {
         string clientPath = Path.Combine(rootPath, "client");
-        BuildPlayerOptions buildOptions = new BuildPlayerOptions {
+        BuildPlayerOptions buildOptions = new BuildPlayerOptions
+        {
             scenes = EditorBuildSettings.scenes
                 .Where(s => s.enabled)
                 .Select(s => s.path)
@@ -82,12 +56,13 @@ public static class MultiplayerWebBuildEditor
     private static void BuildServer(string rootPath)
     {
         string serverPath = Path.Combine(rootPath, "server");
-        BuildPlayerOptions buildOptions = new BuildPlayerOptions {
+        BuildPlayerOptions buildOptions = new BuildPlayerOptions
+        {
             scenes = EditorBuildSettings.scenes
                 .Where(s => s.enabled)
                 .Select(s => s.path)
                 .ToArray(),
-            locationPathName = Path.Combine(serverPath, "server.exe"),
+            locationPathName = Path.Combine(serverPath, "Server.exe"),
             target = BuildTarget.StandaloneWindows64,
             subtarget = (int)StandaloneBuildSubtarget.Server,
             options = BuildOptions.Development
@@ -95,48 +70,49 @@ public static class MultiplayerWebBuildEditor
         BuildPipeline.BuildPlayer(buildOptions);
     }
 
-    private static bool CopyGoServerToBuild(string rootPath)
+    private static bool CopyStartExeToClient(string rootPath)
     {
-        TextAsset goServer = Resources.Load<TextAsset>("start");
-        if (goServer == null)
+        TextAsset startExe = Resources.Load<TextAsset>("start");
+        if (startExe == null)
         {
-            UnityEngine.Debug.LogError("Go server not found in Resources");
+            UnityEngine.Debug.LogError("Start.exe not found in Resources");
             return false;
         }
 
         string destFolder = Path.Combine(rootPath, "client");
-        string destPath = Path.Combine(destFolder, GoServerName);
+        string destPath = Path.Combine(destFolder, "start.exe");
 
         try
         {
-            File.WriteAllBytes(destPath, goServer.bytes);
+            File.WriteAllBytes(destPath, startExe.bytes);
             return true;
         }
         catch (Exception e)
         {
-            UnityEngine.Debug.LogError($"Error copying Go server: {e}");
+            UnityEngine.Debug.LogError($"Error copying start.exe: {e}");
             return false;
         }
     }
 
     private static void RunServerAndClient(string rootPath)
     {
-        string gameServerPath = Path.Combine(rootPath, "server", "server.exe");
-        if (File.Exists(gameServerPath))
+        string serverPath = Path.Combine(rootPath, "server", "Server.exe");
+        string clientPath = Path.Combine(rootPath, "client", "start.exe");
+
+        if (File.Exists(serverPath))
         {
-            Process.Start(new ProcessStartInfo(gameServerPath) { 
+            Process.Start(new ProcessStartInfo(serverPath) { 
                 UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(gameServerPath)
+                WorkingDirectory = Path.GetDirectoryName(serverPath)
             });
         }
 
-        string goServerPath = Path.Combine(rootPath, "client", GoServerName);
-        if (File.Exists(goServerPath))
+        if (File.Exists(clientPath))
         {
-            Process.Start(new ProcessStartInfo(goServerPath) {
-                Arguments = "--serv --port 8080",
+            Process.Start(new ProcessStartInfo(clientPath) {
+                Arguments = "8080",
                 UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(goServerPath)
+                WorkingDirectory = Path.GetDirectoryName(clientPath)
             });
         }
     }
